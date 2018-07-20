@@ -6,6 +6,8 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy import stats
+
 
 script_name = sys.argv.pop(0)
 paths = sys.argv  # hyb output file paths for replicate samples
@@ -139,21 +141,50 @@ def targets_per_mir_seaborn(df, mircount_dict, min_interactions_per=1):
     ebv_unique = list(ebv_unique) 
 
     g = sns.JointGrid(np.log2(np.array(ebv_counts)+1), np.log2(np.array(ebv_unique)+1))
-    sns.kdeplot(np.log2(np.array(human_counts)+1), ax=g.ax_marg_x, shade=True, color="gray")
+    sns.kdeplot(np.log2(np.array(human_counts)+1), ax=g.ax_marg_x, shade=True, color="gray", label="Human")
     sns.kdeplot(np.log2(np.array(human_unique)+1),vertical=True, ax=g.ax_marg_y, shade=True, color="gray")
     g.ax_joint.plot(np.log2(np.array(human_counts)+1), np.log2(np.array(human_unique)+1), "o", ms=4, color="0.80")
 
-    sns.kdeplot(np.log2(np.array(ebv_counts)+1), ax=g.ax_marg_x, shade=True, color="#E55300")
+    sns.kdeplot(np.log2(np.array(ebv_counts)+1), ax=g.ax_marg_x, shade=True, color="#E55300",label='EBV')
     sns.kdeplot(np.log2(np.array(ebv_unique)+1), ax=g.ax_marg_y, vertical=True, shade=True, color="#E55300")
-    g.ax_joint.plot(np.log2(np.array(ebv_counts)+1), np.log2(np.array(ebv_unique)+1), "o", ms=4, color="#E55300")
+    g.ax_joint.plot(np.log2(np.array(ebv_counts)+1), np.log2(np.array(ebv_unique)+1), "o", ms=4, color="#E55300", label='EBV')
 
     g.ax_joint.set_xlabel(r'$\log_2(miRNA)$', fontweight='bold', fontsize=16)
     g.ax_joint.set_ylabel(r'$\log_2(Targets)$', fontweight='bold', fontsize=16)
     g.fig.set_tight_layout(tight=True)
-
+    #g.ax_joint.grid()
+    plt.legend()
     plt.savefig('targets_per_mir.pdf')
+
+
+#def species_hyb_per_region(paths):
+
+    
 
 snucounts = average_counts(paths)
 mrna = mrna_expression(mrna_path)
 mirna = mirna_expression(mirna_path)
 ago = total_ago_mirna(ago_paths)
+
+
+def ago_bind_by_species(mirna_dict, ago_mirna_dict, lower_lim=50):
+    '''Plots ago-complexed mir counts/ total mir counts for each species'''
+
+    mirna_dict = {i: mirna_dict[i] + 1 for i in mirna_dict}  # To avoid division of 0
+    ago_mirna_dict = {i: ago_mirna_dict[i] + 1 for i in ago_mirna_dict}
+
+    ago_d = {i: ago_mirna_dict[i] / mirna_dict[i] for i in ago_mirna_dict if mirna_dict[i] > lower_lim}
+
+    h_arr = [ago_d[i] for i in ago_d if 'hsa' in i]
+    e_arr = [ago_d[i] for i in ago_d if 'ebv' in i]
+
+    h_mean = np.mean(h_arr)
+    e_mean = np.mean(e_arr)
+    p = stats.ttest_ind(h_arr, e_arr)
+    #plt.violinplot([h_arr, e_arr])
+    #plt.scatter([0]*len(h_arr), h_arr, c='k')
+    #plt.scatter([1]*len(e_arr), e_arr, c='r')
+    plt.boxplot([h_arr, e_arr])
+    #plt.boxplot(e_arr)
+
+    print(lower_lim, len(ago_d), p)
