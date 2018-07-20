@@ -9,13 +9,13 @@ import seaborn as sns
 from scipy import stats
 
 
-script_name = sys.argv.pop(0)
-paths = sys.argv  # hyb output file paths for replicate samples
+#script_name = sys.argv.pop(0)
+paths = glob.glob("../etc/annotated_hyb_files/*")  # hyb output file paths for replicate samples
 samples = len(paths)
 
-mirna_path = '/Users/mac9/Downloads/snu_ctl_mir_counts.tsv'  # microRNA counts from small fraction seq (not clash)
-mrna_path = '/Users/mac9/Downloads/SNU719_gene_expression.tsv'  # mRNA TPMs from RNA-seq experiment
-ago_paths = glob.glob("/Users/mac9/Desktop/clash_jul2018/mircounts/*hybrids.hyb.*")  # Files output from 'count_total_clash_mirs.py'
+mirna_path = '../etc/snu_ctl_mir_counts.tsv'  # microRNA counts from small fraction seq (not clash)
+mrna_path = '../etc/SNU719_gene_expression.tsv'  # mRNA TPMs from RNA-seq experiment
+ago_paths = glob.glob("../etc/hyb_total_mir_counts/*hybrids.hyb.*")  # Files output from 'count_total_clash_mirs.py'
 
 
 hyb_count_min = 5
