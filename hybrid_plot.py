@@ -67,6 +67,13 @@ for i,j in enumerate(df.index.unique()):
     size = counts 
     plt.scatter(ind, counts*100/np.sum(counts),s=size, linewidth=1, edgecolor='k',alpha=.5)
 
+plt.title("Cellular targets of microRNAs",fontsize=35, fontweight ='bold')
+plt.yticks(fontsize=20,fontweight='bold')
+plt.ylabel("Percent hybridization to each transcript",fontsize=22,fontweight='bold')
+ax.set_xticks(range(len(df.index.unique())))
+ax.set_xticklabels([i.split('miR-')[1] if 'miR' in i else i.split('_')[-1] for i in df.index.unique()],rotation=90,fontsize=22, fontweight='bold')
+
+
 plt.title("Cellular targets of EBV microRNAs",fontsize=35, fontweight ='bold')
 plt.yticks(fontsize=20,fontweight='bold')
 plt.ylabel("Percent hybridization to each transcript",fontsize=22,fontweight='bold')
