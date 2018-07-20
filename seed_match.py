@@ -96,7 +96,7 @@ for path in ['/Users/mac9/Desktop/clash_jul2018/180306_I283_FCHNYYGBBXX_L1_SNU71
         
         header = [
             'read_id', 'sequence', '.', 'gene1', 'read1_start', 'read1_stop',
-            'gene1_start', 'gene1_stop', 'gene1_align_score', 'gene2', 'read2_start', 
+            'gene1_start', '    gene1_stop', 'gene1_align_score', 'gene2', 'read2_start', 
             'read2_stop', 'gene2_start', 'gene2_stop', 'gene2_align_score',
             'mir', 'mrna', 'transcript', 'mir_seq', 'mrna_seq', 'mir_fold',
             'mrna_fold', 'binding_energy', 'a1', 'm2_5' ,'m6_7', 'm8', 'm9_12', 'm13_17',

@@ -41,7 +41,7 @@ snucounts['mrna'] = [i.split('_')[1] for i in snucounts.index]
 snucounts.index = snucounts['mir']
 
 df = snucounts
-bart_map = pd.read_csv("/home/nate/Documents/groups/Erik/star_barts_to_3p5pmap", index_col=0)
+bart_madp = pd.read_csv("/home/nate/Documents/groups/Erik/star_barts_to_3p5pmap", index_col=0)
 df['barts'] = bart_map
 df = df.set_index(df['barts'])
 df = df.drop(['barts','mir'],1)
@@ -72,6 +72,16 @@ plt.yticks(fontsize=20,fontweight='bold')
 plt.ylabel("Percent hybridization to each transcript",fontsize=22,fontweight='bold')
 ax.set_xticks(range(len(df.index.unique())))
 ax.set_xticklabels([i.split('miR-')[1] if 'miR' in i else i.split('_')[-1] for i in df.index.unique()],rotation=90,fontsize=22, fontweight='bold')
+plt.yticks(fontsize = 22, fontweight='bold')
+plt.subplots_adjust(bottom=0.2)
+ax.grid(alpha=0.7)
+ax.set_axisbelow(True)
+
+
+
+
+
+
 
 
 plt.title("Cellular targets of EBV microRNAs",fontsize=35, fontweight ='bold')
@@ -111,7 +121,7 @@ dd_seed = defaultdict(list)
 def append_seed_counts(path):
     with open(path, 'r') as infile:
         header = next(infile).split('\t')
-        header_map = {i:j for i,j in zip(header, range(1,len(header) + 1))}
+        header_map = {i:j for i,j in zip(header, range(len(header)))}
         for line in infile:
             line = line.split('\t')
             mir = line[header_map['mir']]
@@ -126,14 +136,14 @@ def append_seed_counts(path):
 def average_seed_counts():
     for path in snu_files:
         append_seed_counts(path)
-    avg = {i:np.sum(dd_seed[i])/3 for i in dd_seed}
+    avg = {i:np.mean(dd_seed[i])for i in dd_seed}
     return avg
 avg_seed = average_seed_counts()
 snucounts_seed = pd.DataFrame.from_dict(avg_seed, orient='index')
 snucounts_seed.columns = ['counts']
 snucounts_seed['seed'] = [i.split('_')[0] for i in snucounts_seed.index]
 snucounts_seed['mir'] = [i.split('_')[1] for i in snucounts_seed.index]
-snucounts_seed['mrna'] = [i.split('_')[2] for i in snucounts_seed.index]
+snucounts_seed['mrna'] = [i.rsplit('_')[-3] for i in snucounts_seed.index]
 snucounts_seed['energy'] = [i.split('_')[3] for i in snucounts_seed.index]
 snucounts_seed['region'] = [i.split('_')[4] for i in snucounts_seed.index]
 snucounts_seed = snucounts_seed.set_index('mir')
@@ -158,9 +168,9 @@ for i, j in enumerate(seeds):
     z = df[df['seed'] == j]
     en = z['energy'].map(lambda x:-float(x))
     z['energy'] = en
-    energy = pd.DataFrame(z.reset_index().groupby(['barts','mrna'])['energy'].mean()).reset_index().set_index('barts')
+    energy = pd.DataFrame(z.reset_index().groupby(['mir','mrna'])['energy'].mean()).reset_index().set_index('mir')
 
-    z =  pd.DataFrame(z.reset_index().groupby(['barts','mrna'])['counts'].sum().reset_index()).set_index('barts')
+    z =  pd.DataFrame(z.reset_index().groupby(['mir','mrna'])['counts'].sum().reset_index()).set_index('mir')
     
     z['energy'] = energy['energy']
     colors = []
