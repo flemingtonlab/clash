@@ -201,10 +201,37 @@ def ago_bind_by_species(mirna_dict, ago_mirna_dict, lower_lim=50):
     plt.savefig("ago-bound_vs_total_byspecies.pdf")
     #return ax
 
-hyb = pd.read_table(paths[0])
-for i in paths[1:]:
-    x = pd.read_table(i)
-    hyb = hyb.append(x, ignore_index=True)
+def grouped(df, groupby2='m13_17'):
 
-hyb['species'] = hyb['mir'].apply(get_species)
+    h = df.groupby(['species', groupby2])['count'].sum().loc['Human']
+    e = df.groupby(['species', groupby2])['count'].sum().loc['EBV']
+
+    return h, e
+
+
+hd = defaultdict(list)
+ed = defaultdict(list)
+for i in paths:
+    hyb = pd.read_table(i)
+    hyb=hyb[hyb['mrna'] != '']
+    counts = np.sum(hyb['count'])
+    hyb['species'] = hyb['mir'].apply(get_species)
+    h, e = grouped(hyb)
+    for key, val in h.items():
+        hd[key].append(val/counts)
+    for key, val in e.items():
+        ed[key].append(val/counts)
+relative_to = 0
+   
+hmn = np.mean(hd[relative_to])
+for key, values in hd.items(): 
+    hd[key] = [value/hmn for value in values]
+
+emn = np.mean(ed[relative_to])
+for key, values in ed.items(): 
+    ed[key] = [value/emn for value in values]
+
+h_sem = {i: stats.sem(hd[i]) for i in hd}
+e_sem = {i: stats.sem(ed[i]) for i in ed}
+    
 
