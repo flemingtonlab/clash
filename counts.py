@@ -121,13 +121,11 @@ def plot_hyb_proportions(df, filter=hyb_count_min):
 
 def targets_per_mir_seaborn(df, mircount_dict, min_interactions_per=1):
     
-    sns.set(rc={'figure.figsize':(15, 15) })
+    sns.set(rc={'figure.figsize':(15, 15)})
     sns.set_style("white")
 
     ebv = df.loc[[i for i in set(df.index) if 'ebv' in i and i in mircount_dict]]
     human = df.loc[[i for i in set(df.index) if 'hsa' in i and i in mircount_dict]]
-
-
 
     ebv = ebv[ebv['counts'] > min_interactions_per]
     human = human[human['counts'] > min_interactions_per]
@@ -143,17 +141,19 @@ def targets_per_mir_seaborn(df, mircount_dict, min_interactions_per=1):
     g = sns.JointGrid(np.log2(np.array(ebv_counts)+1), np.log2(np.array(ebv_unique)+1))
     sns.kdeplot(np.log2(np.array(human_counts)+1), ax=g.ax_marg_x, shade=True, color="gray", label="Human")
     sns.kdeplot(np.log2(np.array(human_unique)+1),vertical=True, ax=g.ax_marg_y, shade=True, color="gray")
-    g.ax_joint.plot(np.log2(np.array(human_counts)+1), np.log2(np.array(human_unique)+1), "o", ms=4, color="0.80")
+    g.ax_joint.plot(np.log2(np.array(human_counts)+1), np.log2(np.array(human_unique)+1), "o", ms=9, color="0.80", mec='k', mew=.3, alpha=.7)
 
     sns.kdeplot(np.log2(np.array(ebv_counts)+1), ax=g.ax_marg_x, shade=True, color="#E55300",label='EBV')
     sns.kdeplot(np.log2(np.array(ebv_unique)+1), ax=g.ax_marg_y, vertical=True, shade=True, color="#E55300")
-    g.ax_joint.plot(np.log2(np.array(ebv_counts)+1), np.log2(np.array(ebv_unique)+1), "o", ms=4, color="#E55300", label='EBV')
+    g.ax_joint.plot(np.log2(np.array(ebv_counts)+1), np.log2(np.array(ebv_unique)+1), "o", ms=9, color="#E55300", label='EBV', mec='k', mew=.3, alpha=.7)
 
     g.ax_joint.set_xlabel(r'$\log_2(miRNA)$', fontweight='bold', fontsize=16)
     g.ax_joint.set_ylabel(r'$\log_2(Targets)$', fontweight='bold', fontsize=16)
     g.fig.set_tight_layout(tight=True)
-    #g.ax_joint.grid()
+    g.ax_joint.grid()
     plt.legend()
+    g.ax_joint.set_xlim([-1.3, 21])
+    g.ax_joint.set_ylim([-1.3, 13.5])
     plt.savefig('targets_per_mir.pdf')
 
 
@@ -162,6 +162,7 @@ def targets_per_mir_seaborn(df, mircount_dict, min_interactions_per=1):
     
 
 snucounts = average_counts(paths)
+snucounts = snucounts[snucounts['mrna'] != 'MTRNR2L12']
 mrna = mrna_expression(mrna_path)
 mirna = mirna_expression(mirna_path)
 ago = total_ago_mirna(ago_paths)
@@ -181,10 +182,21 @@ def ago_bind_by_species(mirna_dict, ago_mirna_dict, lower_lim=50):
     h_mean = np.mean(h_arr)
     e_mean = np.mean(e_arr)
     p = stats.ttest_ind(h_arr, e_arr)
-    #plt.violinplot([h_arr, e_arr])
-    #plt.scatter([0]*len(h_arr), h_arr, c='k')
-    #plt.scatter([1]*len(e_arr), e_arr, c='r')
-    plt.boxplot([h_arr, e_arr])
-    #plt.boxplot(e_arr)
 
+    col_list=['grey', 'orange']
+    col_list_palette = sns.xkcd_palette(col_list)
+    sns.set_palette(col_list)
+    fig, ax = plt.subplots(figsize=(8,12))
+    sns.boxplot(data=[h_arr, e_arr], ax=ax, linewidth=2, width=.5)
+    ax.set_ylabel(r'$\frac{[AGO-miRNA]}{miRNA}$' , fontsize=25, fontweight='bold')
+    ax.tick_params(labelsize=20, which='both', length=4)
+    ax.set_xticklabels(["Human", "EBV"])
+    plt.yscale('log') 
+    #plt.legend()
+    plt.title("miRNA-Argonaute Binding Efficiency", fontsize=25)
     print(lower_lim, len(ago_d), p)
+    plt.tight_layout()
+    plt.savefig("ago-bound_vs_total_byspecies.pdf")
+    #return ax
+
+    
