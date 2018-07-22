@@ -17,8 +17,15 @@ mirna_path = '../etc/snu_ctl_mir_counts.tsv'  # microRNA counts from small fract
 mrna_path = '../etc/SNU719_gene_expression.tsv'  # mRNA TPMs from RNA-seq experiment
 ago_paths = glob.glob("../etc/hyb_total_mir_counts/*hybrids.hyb.*")  # Files output from 'count_total_clash_mirs.py'
 
-
 hyb_count_min = 5
+
+
+def get_species(string):
+    if 'hsa' in string:
+        return 'Human'
+    else:
+        return 'EBV'
+
 
 dd = defaultdict(list)
 
@@ -157,10 +164,6 @@ def targets_per_mir_seaborn(df, mircount_dict, min_interactions_per=1):
     plt.savefig('targets_per_mir.pdf')
 
 
-#def species_hyb_per_region(paths):
-
-    
-
 snucounts = average_counts(paths)
 snucounts = snucounts[snucounts['mrna'] != 'MTRNR2L12']
 mrna = mrna_expression(mrna_path)
@@ -192,11 +195,16 @@ def ago_bind_by_species(mirna_dict, ago_mirna_dict, lower_lim=50):
     ax.tick_params(labelsize=20, which='both', length=4)
     ax.set_xticklabels(["Human", "EBV"])
     plt.yscale('log') 
-    #plt.legend()
     plt.title("miRNA-Argonaute Binding Efficiency", fontsize=25)
     print(lower_lim, len(ago_d), p)
     plt.tight_layout()
     plt.savefig("ago-bound_vs_total_byspecies.pdf")
     #return ax
 
-    
+hyb = pd.read_table(paths[0])
+for i in paths[1:]:
+    x = pd.read_table(i)
+    hyb = hyb.append(x, ignore_index=True)
+
+hyb['species'] = hyb['mir'].apply(get_species)
+
