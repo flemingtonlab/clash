@@ -209,29 +209,135 @@ def grouped(df, groupby2='m13_17'):
     return h, e
 
 
-hd = defaultdict(list)
-ed = defaultdict(list)
-for i in paths:
-    hyb = pd.read_table(i)
-    hyb=hyb[hyb['mrna'] != '']
-    counts = np.sum(hyb['count'])
-    hyb['species'] = hyb['mir'].apply(get_species)
-    h, e = grouped(hyb)
-    for key, val in h.items():
-        hd[key].append(val/counts)
-    for key, val in e.items():
-        ed[key].append(val/counts)
-relative_to = 0
-   
-hmn = np.mean(hd[relative_to])
-for key, values in hd.items(): 
-    hd[key] = [value/hmn for value in values]
+def get_total_13_17(groupby='m13_17'):
 
-emn = np.mean(ed[relative_to])
-for key, values in ed.items(): 
-    ed[key] = [value/emn for value in values]
-
-h_sem = {i: stats.sem(hd[i]) for i in hd}
-e_sem = {i: stats.sem(ed[i]) for i in ed}
+    hd = defaultdict(list)
+    ed = defaultdict(list)
+    for i in paths:
+        hyb = pd.read_table(i)
+        hyb = hyb[hyb['mrna'] != '']
+        counts = np.sum(hyb['count'])
+        hyb['species'] = hyb['mir'].apply(get_species)
+        h, e = grouped(hyb, groupby2=groupby)
+        for key, val in h.items():
+            hd[key].append(val/counts)
+        for key, val in e.items():
+            ed[key].append(val/counts)
+    hmn = []
+    for i in hd.keys():
+        
+        hmn.append(mean(hd[i]))
+    hmn = sum(hmn)
     
+    emn = []
+    for i in ed.keys():
 
+        emn.append(mean(ed[i]))
+    emn = sum(emn)
+
+    #hmn = np.mean(hd[relative_to]) 
+    for key, values in hd.items(): 
+        hd[key] = [100*value / hmn for value in values]
+   
+    # emn = np.mean(ed[relative_to])
+    for key, values in ed.items(): 
+        ed[key] = [100*value / emn for value in values]
+
+    h_sem = {i: stats.sem(hd[i]) for i in hd}
+    e_sem = {i: stats.sem(ed[i]) for i in ed}
+
+    # Call plot function here
+    return hd, ed
+
+def get_individual_13_17(groupby='m13_17'):
+
+    hd = defaultdict(list)
+    ed = defaultdict(list)
+    relative_to = 0
+
+    for i in paths:
+        hyb = pd.read_table(i)
+        hyb = hyb[hyb['mrna'] != '']
+        counts = np.sum(hyb['count'])
+        hyb['species'] = hyb['mir'].apply(get_species)
+        hyb = pd.DataFrame(hyb.groupby(['species','mir','mrna',groupby])['count'].size()).reset_index().set_index('species')
+        for key, val in hyb.loc['Human'][groupby].value_counts().items():
+            hd[key].append(val / counts)
+        for key, val in hyb.loc['EBV'][groupby].value_counts().items():
+            ed[key].append(val / counts)
+
+    hmn = []
+    for i in hd.keys():
+        
+        hmn.append(mean(hd[i]))
+    hmn = sum(hmn)
+    
+    emn = []
+    for i in ed.keys():
+
+        emn.append(mean(ed[i]))
+    emn = sum(hmn)
+
+    #hmn = np.mean(hd[relative_to]) 
+    for key, values in hd.items(): 
+        hd[key] = [100*value / hmn for value in values]
+   
+    # emn = np.mean(ed[relative_to])
+    for key, values in ed.items(): 
+        ed[key] = [100*value / emn for value in values]
+
+    h_sem = {i: stats.sem(hd[i]) for i in hd}
+    e_sem = {i: stats.sem(ed[i]) for i in ed}
+
+    return hd, ed
+
+def kd_prep():
+    hd = defaultdict(list)
+    ed = defaultdict(list)
+    samples = len(paths)
+    for path in paths:
+        hyb = pd.read_table(path)
+        hyb = hyb[~ hyb['mrna'].str.startswith('MT')]
+        hyb['a1'] = pd.to_numeric(hyb['a1'], errors='coerce')
+        hyb['m2_5'] = pd.to_numeric(hyb['m2_5'], errors='coerce')
+        hyb['m6_7'] = pd.to_numeric(hyb['m6_7'], errors='coerce')
+        hyb['m8'] = pd.to_numeric(hyb['m8'], errors='coerce')
+        hyb['seed_total'] = np.sum(hyb[['a1','m2_5','m6_7','m8']], 1)
+        counts = np.sum(hyb['count'])
+
+        hyb['species'] = hyb['mir'].apply(get_species)
+        sm = []
+        for i in hyb.index:
+            if hyb.loc[i,'seed_total'] == 8:
+                if hyb.loc[i, 'm13_17'] >= 3:
+                    sm.append('8mer_supp')
+                else:
+                    sm.append('8mer')
+            elif hyb.loc[i,'seed_total'] == 7:
+                if hyb.loc[i,'m13_17'] >=3:
+                    sm.append('7mer_supp')
+                else:
+                    sm.append('7mer')
+            elif hyb.loc[i, 'seed_total'] == 6:
+                if hyb.loc[i, 'm13_17'] >= 3:
+                    sm.append('6mer_supp')
+                else:
+                    sm.append('6mer')
+            else:
+                sm.append('no seed')
+        
+        
+            print(i)
+        hyb['anno'] = sm
+        hyb = pd.DataFrame(hyb.groupby(['species','mir','mrna','anno'])['count'].sum()).reset_index() 
+        for i in hyb[hyb['species']=='Human'].index:
+            hd["%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
+
+        for i in hyb[hyb['species']=='EBV'].index:
+            ed["%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
+        
+    for i in hd:
+        hd[i] = sum(hd[i])/samples
+    for i in ed:
+        ed[i] = sum(ed[i])/samples
+    return ed, hd
