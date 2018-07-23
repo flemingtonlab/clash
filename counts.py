@@ -335,9 +335,20 @@ def kd_prep():
 
         for i in hyb[hyb['species']=='EBV'].index:
             ed["%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
-        
+   
+    h_seed = defaultdict(int)
+    e_seed = defaultdict(int)    
     for i in hd:
-        hd[i] = sum(hd[i])/samples
+        mir_i, mrna_i, seed_i = i.split('_')
+        avg = sum(hd[i])/samples
+        try:
+            denom = mirna[mir_i] * mrna[mrna_i]
+        except KeyError:
+            print('i not found in mirna/mrna dict')
+            continue
+        h_seed[seed_i]#######
+
     for i in ed:
         ed[i] = sum(ed[i])/samples
+    
     return ed, hd
