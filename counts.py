@@ -7,7 +7,7 @@ import sys
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-
+import matplotlib.patches as mpatches
 
 #script_name = sys.argv.pop(0)
 paths = glob.glob("../etc/annotated_hyb_files/*")  # hyb output file paths for replicate samples
@@ -332,18 +332,18 @@ def kd_prep():
         
             print(i)
         hyb['anno'] = sm
-        hyb = pd.DataFrame(hyb.groupby(['species','mir','mrna','binding_energy','anno'])['count'].sum()).reset_index() 
+        hyb = pd.DataFrame(hyb.groupby(['species','mir','mrna','binding_energy','mrna_feature_stop', 'anno'])['count'].sum()).reset_index() 
         for i in hyb[hyb['species']=='Human'].index:
-            hd["%s_%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'],hyb.loc[i, 'binding_energy'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
+            hd["%s_%s_%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i,'mrna_feature_stop'], hyb.loc[i, 'binding_energy'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
 
         for i in hyb[hyb['species']=='EBV'].index:
-            ed["%s_%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i,'binding_energy'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
+            ed["%s_%s_%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i,'mrna_feature_stop'], hyb.loc[i, 'binding_energy'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
    
     h_seed = defaultdict(list)
     e_seed = defaultdict(list)    
     for i in hd:
         print(i)
-        mir_i, mrna_i, binding, seed_i = i.split('_')
+        mir_i, mrna_i, feature, binding, seed_i = i.split('_')
         avg = sum(hd[i])/samples
         try:
             denom = mirna[mir_i] * mrna[mrna_i]
@@ -355,11 +355,11 @@ def kd_prep():
             continue
         else:
             val = avg / denom
-        h_seed[seed_i].append((mir_i, mrna_i, binding, val))
+        h_seed[seed_i].append((mir_i, mrna_i, feature, binding, val))
 
 
     for i in ed:
-        mir_i, mrna_i, binding, seed_i = i.split('_')
+        mir_i, mrna_i, feature, binding, seed_i = i.split('_')
         avg = sum(ed[i])/samples
         try:
             denom = mirna[mir_i] * mrna[mrna_i]
@@ -371,7 +371,7 @@ def kd_prep():
             continue
         else:
             val = avg / denom
-        e_seed[seed_i].append((mir_i, mrna_i, binding, val))
+        e_seed[seed_i].append((mir_i, mrna_i, feature, binding, val))
         
     return e_seed, h_seed
 
@@ -383,20 +383,31 @@ def plot_kd(e_seed, h_seed):
 
     fig = plt.figure(figsize=(24,12))
     ax = plt.subplot(111)
+    e_colors = {'CDS': "#c92400", "3'UTR": "#132ad8", "5'UTR": '#efb907', "n/a":"gray"}
+    #e_colors = {'CDS': "#c92400", "3'UTR": "#132ad8", "5'UTR": '#efb907', "n/a":"gray"}
+
     for x, seed in enumerate(seed_order):
+        color = [e_colors[i[-3]] for i in e_seed[seed]]
         be =[-float(i[-2]) for i in e_seed[seed]]
         kd = [i[-1] * 10000 for i in e_seed[seed]]
-        plt.scatter([x+.1] * len(kd), be,  c='orange',s=kd, alpha=.4)
+        plt.scatter([x+.1] * len(kd), be,  c=color,s=kd, alpha=.4)
 
+        color = [e_colors[i[-3]] for i in h_seed[seed]]
         be =[-float(i[-2]) for i in h_seed[seed]]
         kd = [i[-1] * 10000 for i in h_seed[seed]]
-        plt.scatter([x-.1] * len(kd), be,  c='grey',s=kd, alpha=.4)
+        plt.scatter([x-.1] * len(kd), be,  c=color,s=kd, alpha=.4)
 
     ax.set_xticks(range(len(seed_order)))
     ax.set_xticklabels(seed_order, rotation=90 , fontsize=22, fontweight='bold')
     plt.ylabel(r'Binding Energy ($\mathbf{-(\Delta G)}$)', fontsize=22, fontweight='bold')
     plt.yticks(fontsize=22,fontweight ='bold')
     plt.grid(True,which="both",ls="--", alpha=0.7)
-    ax2.set_axisbelow(True)
+    ax.set_axisbelow(True)
     plt.title('microRNA Affinity for Target', fontsize=35, fontweight='bold')
-    plt.subplots_adjust(bottom=0.4)
+    utr3 = mpatches.Patch(color='#132ad8', label="3' UTR")
+    utr5 = mpatches.Patch(color='#efb907', label="5' UTR")
+    cds = mpatches.Patch(color='#c92400', label="CDS")
+
+    plt.legend(handles=[utr3, utr5, cds], fontsize=18, frameon=True, edgecolor='k', shadow=True, loc='upper right')
+    plt.subplots_adjust(bottom=0.3)
+    plt.savefig('../figs/binding_affinity_colors.png')
