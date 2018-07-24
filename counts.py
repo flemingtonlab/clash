@@ -310,21 +310,24 @@ def kd_prep():
         for i in hyb.index:
             if hyb.loc[i,'seed_total'] == 8:
                 if hyb.loc[i, 'm13_17'] >= 3:
-                    sm.append('8mer_supp')
+                    sm.append('8mer-supp')
                 else:
                     sm.append('8mer')
             elif hyb.loc[i,'seed_total'] == 7:
                 if hyb.loc[i,'m13_17'] >=3:
-                    sm.append('7mer_supp')
+                    sm.append('7mer-supp')
                 else:
                     sm.append('7mer')
             elif hyb.loc[i, 'seed_total'] == 6:
                 if hyb.loc[i, 'm13_17'] >= 3:
-                    sm.append('6mer_supp')
+                    sm.append('6mer-supp')
                 else:
                     sm.append('6mer')
             else:
-                sm.append('no seed')
+                if hyb.loc[i, 'm13_17'] >= 3:
+                    sm.append('noseed-supp')
+                else:    
+                    sm.append('noseed')
         
         
             print(i)
@@ -336,9 +339,10 @@ def kd_prep():
         for i in hyb[hyb['species']=='EBV'].index:
             ed["%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
    
-    h_seed = defaultdict(int)
-    e_seed = defaultdict(int)    
+    h_seed = defaultdict(list)
+    e_seed = defaultdict(list)    
     for i in hd:
+        print(i)
         mir_i, mrna_i, seed_i = i.split('_')
         avg = sum(hd[i])/samples
         try:
@@ -346,9 +350,27 @@ def kd_prep():
         except KeyError:
             print('i not found in mirna/mrna dict')
             continue
-        h_seed[seed_i]#######
+        if denom == 0:
+            print('mirna/mrna is 0 - cannot be denominator..skipped')
+            continue
+        else:
+            val = avg / denom
+        h_seed[seed_i].append((mir_i, mrna_i, val))
+
 
     for i in ed:
-        ed[i] = sum(ed[i])/samples
-    
+        mir_i, mrna_i, seed_i = i.split('_')
+        avg = sum(ed[i])/samples
+        try:
+            denom = mirna[mir_i] * mrna[mrna_i]
+        except KeyError:
+            print('i not found in mirna/mrna dict', i)
+            continue
+        if denom == 0:
+            print('mirna/mrna is 0 - cannot be denominator..skipped', i )
+            continue
+        else:
+            val = avg / denom
+        e_seed[seed_i].append((mir_i, mrna_i, val))
+        
     return ed, hd
