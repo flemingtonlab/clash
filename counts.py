@@ -332,45 +332,71 @@ def kd_prep():
         
             print(i)
         hyb['anno'] = sm
-        hyb = pd.DataFrame(hyb.groupby(['species','mir','mrna','anno'])['count'].sum()).reset_index() 
+        hyb = pd.DataFrame(hyb.groupby(['species','mir','mrna','binding_energy','anno'])['count'].sum()).reset_index() 
         for i in hyb[hyb['species']=='Human'].index:
-            hd["%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
+            hd["%s_%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'],hyb.loc[i, 'binding_energy'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
 
         for i in hyb[hyb['species']=='EBV'].index:
-            ed["%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
+            ed["%s_%s_%s_%s"% (hyb.loc[i, 'mir'], hyb.loc[i, 'mrna'], hyb.loc[i,'binding_energy'], hyb.loc[i, 'anno'])].append(hyb.loc[i,'count'])
    
     h_seed = defaultdict(list)
     e_seed = defaultdict(list)    
     for i in hd:
         print(i)
-        mir_i, mrna_i, seed_i = i.split('_')
+        mir_i, mrna_i, binding, seed_i = i.split('_')
         avg = sum(hd[i])/samples
         try:
             denom = mirna[mir_i] * mrna[mrna_i]
         except KeyError:
             print('i not found in mirna/mrna dict')
             continue
-        if denom == 0:
+        if denom < 500:
             print('mirna/mrna is 0 - cannot be denominator..skipped')
             continue
         else:
             val = avg / denom
-        h_seed[seed_i].append((mir_i, mrna_i, val))
+        h_seed[seed_i].append((mir_i, mrna_i, binding, val))
 
 
     for i in ed:
-        mir_i, mrna_i, seed_i = i.split('_')
+        mir_i, mrna_i, binding, seed_i = i.split('_')
         avg = sum(ed[i])/samples
         try:
             denom = mirna[mir_i] * mrna[mrna_i]
         except KeyError:
             print('i not found in mirna/mrna dict', i)
             continue
-        if denom == 0:
+        if denom < 500:
             print('mirna/mrna is 0 - cannot be denominator..skipped', i )
             continue
         else:
             val = avg / denom
-        e_seed[seed_i].append((mir_i, mrna_i, val))
+        e_seed[seed_i].append((mir_i, mrna_i, binding, val))
         
-    return ed, hd
+    return e_seed, h_seed
+
+def plot_kd(e_seed, h_seed):
+
+    seed_order = ['noseed', 'noseed-supp', '6mer', '6mer-supp', '7mer',
+                    '7mer-supp', '8mer', '8mer-supp']
+
+
+    fig = plt.figure(figsize=(24,12))
+    ax = plt.subplot(111)
+    for x, seed in enumerate(seed_order):
+        be =[-float(i[-2]) for i in e_seed[seed]]
+        kd = [i[-1] * 10000 for i in e_seed[seed]]
+        plt.scatter([x+.1] * len(kd), be,  c='orange',s=kd, alpha=.4)
+
+        be =[-float(i[-2]) for i in h_seed[seed]]
+        kd = [i[-1] * 10000 for i in h_seed[seed]]
+        plt.scatter([x-.1] * len(kd), be,  c='grey',s=kd, alpha=.4)
+
+    ax.set_xticks(range(len(seed_order)))
+    ax.set_xticklabels(seed_order, rotation=90 , fontsize=22, fontweight='bold')
+    plt.ylabel(r'Binding Energy ($\mathbf{-(\Delta G)}$)', fontsize=22, fontweight='bold')
+    plt.yticks(fontsize=22,fontweight ='bold')
+    plt.grid(True,which="both",ls="--", alpha=0.7)
+    ax2.set_axisbelow(True)
+    plt.title('microRNA Affinity for Target', fontsize=35, fontweight='bold')
+    plt.subplots_adjust(bottom=0.4)
